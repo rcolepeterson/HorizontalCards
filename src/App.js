@@ -1,15 +1,35 @@
 import * as THREE from 'three'
 import { useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Image, ScrollControls, Scroll, useScroll } from '@react-three/drei'
+import { Image, ScrollControls, Scroll, useScroll, Plane } from '@react-three/drei'
 import { proxy, useSnapshot } from 'valtio'
 import { easing } from 'maath'
 
 const material = new THREE.LineBasicMaterial({ color: 'white' })
 const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -0.5, 0), new THREE.Vector3(0, 0.5, 0)])
+
+const categories = {
+  orange: 'orange',
+  green: 'green',
+  blue: 'blue'
+}
+
 const state = proxy({
   clicked: null,
-  urls: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 5, 7, 8, 2, 4, 9, 6].map((u) => `/${u}.jpg`)
+  urls: [
+    { src: '/1.jpg', category: categories.orange },
+    { src: '/2.jpg', category: categories.green },
+    { src: '/3.jpg', category: categories.blue },
+    { src: '/4.jpg', category: categories.orange },
+    { src: '/5.jpg', category: categories.green },
+    { src: '/6.jpg', category: categories.blue },
+    { src: '/7.jpg', category: categories.orange },
+    { src: '/8.jpg', category: categories.green },
+    { src: '/9.jpg', category: categories.blue },
+    { src: '/10.jpg', category: categories.orange },
+    { src: '/11.jpg', category: categories.green },
+    { src: '/12.jpg', category: categories.blue }
+  ].sort((a, b) => a.category.localeCompare(b.category))
 })
 
 function Minimap() {
@@ -19,10 +39,6 @@ function Minimap() {
   const { height } = useThree((state) => state.viewport)
   useFrame((state, delta) => {
     ref.current.children.forEach((child, index) => {
-      // Give me a value between 0 and 1
-      //   starting at the position of my item
-      //   ranging across 4 / total length
-      //   make it a sine, so the value goes from 0 to 1 to 0.
       const y = scroll.curve(index / urls.length - 1.5 / urls.length, 4 / urls.length)
       easing.damp(child.scale, 'y', 0.15 + y / 6, 0.15, delta)
     })
@@ -55,7 +71,14 @@ function Item({ index, position, scale, c = new THREE.Color(), ...props }) {
     easing.damp(ref.current.material, 'grayscale', hovered || clicked === index ? 0 : Math.max(0, 1 - y), 0.15, delta)
     easing.dampC(ref.current.material.color, hovered || clicked === index ? 'white' : '#aaa', hovered ? 0.3 : 0.15, delta)
   })
-  return <Image ref={ref} {...props} position={position} scale={scale} onClick={click} onPointerOver={over} onPointerOut={out} />
+  return (
+    <group>
+      <Image ref={ref} {...props} position={position} scale={scale} onClick={click} onPointerOver={over} onPointerOut={out} />
+      {/* <Plane args={[0.1, 0.1]} position={[position[0] - scale[0] / 2 + 0.15, position[1] + scale[1] / 2 - 0.15, position[2] + 0.01]}>
+        <meshBasicMaterial attach="material" color={urls[index].category} />
+      </Plane> */}
+    </group>
+  )
 }
 
 function Items({ w = 0.7, gap = 0.15 }) {
@@ -66,7 +89,7 @@ function Items({ w = 0.7, gap = 0.15 }) {
     <ScrollControls horizontal damping={0.1} pages={(width - xW + urls.length * xW) / width}>
       <Minimap />
       <Scroll>
-        {urls.map((url, i) => <Item key={i} index={i} position={[i * xW, 0, 0]} scale={[w, 4, 1]} url={url} />) /* prettier-ignore */}
+        {urls.map((url, i) => <Item key={i} index={i} position={[i * xW, 0, 0]} scale={[w, 4, 1]} url={url.src} />) /* prettier-ignore */}
       </Scroll>
     </ScrollControls>
   )
